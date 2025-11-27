@@ -1,5 +1,7 @@
 {
     "conventionalCommits.scopes": [
-        "General"
+        "General",
+        "Words",
+        "TypingBoard"
     ]
 }
