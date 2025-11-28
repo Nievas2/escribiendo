@@ -7,9 +7,9 @@ interface TypingBoardProps {
 const TypingBoard = ({ words }: TypingBoardProps) => {
   const [currentCharIndex, setCurrentCharIndex] = useState(0)
   const [letterError, setLetterError] = useState(false)
-  
+
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
-    const allChars = words.join("").split("")
+    const allChars = words.join(" ").split("") // <-- ahora con espacios entre palabras
     console.log(e.key, allChars[currentCharIndex])
     if (
       e.key === "Shift" ||
@@ -24,8 +24,6 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
       setCurrentCharIndex(currentCharIndex + 1)
       if (letterError) setLetterError(false)
     } else {
-      // Incorrect key pressed
-      // You can add some feedback for incorrect key press here if needed
       setLetterError(true)
     }
   }
@@ -50,7 +48,7 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
       `}</style>
 
       <p>
-        {currentCharIndex}/{words.join("").length}
+        {currentCharIndex}/{words.join(" ").length}
       </p>
       <div
         className="text-gray-200 text-2xl font-medium leading-relaxed ring-0 outline-none focus:ring-0 focus:outline-none"
@@ -60,42 +58,68 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
 
           return handleKeyDown(e)
         }}
+        onFocus={(e) => console.log(e)}
       >
-        {words.map((word: string) => (
-          <div key={crypto.randomUUID()} className="inline-block mr-2 mb-2">
-            {word.split("").map((char: string, index: number) => {
-              const charGlobalIndex =
-                index + words.slice(0, words.indexOf(word)).join("").length
-              const isCurrent = charGlobalIndex === currentCharIndex
+        {(() => {
+          let globalIndex = 0 // contador global de caracteres (incluye espacios)
+          return words.map((word: string, wordIndex: number) => (
+            <div key={wordIndex} className="inline-block mr-2 mb-2">
+              {word.split("").map((char: string, index: number) => {
+                const charGlobalIndex = globalIndex++
+                const isCurrent = charGlobalIndex === currentCharIndex
 
-              return (
-                <span
-                  key={crypto.randomUUID()}
-                  className={`inline-block relative
-                    ${
-                      charGlobalIndex >= currentCharIndex
-                        ? "text-gray-800"
-                        : ""
-                    }
-                    ${
-                      letterError && charGlobalIndex === currentCharIndex
-                        ? "text-red-500"
-                        : ""
-                    }
+                return (
+                  <span
+                    key={`${wordIndex}-${index}`}
+                    className={`inline-block relative
+                      ${
+                        charGlobalIndex >= currentCharIndex
+                          ? "text-gray-800"
+                          : ""
+                      }
+                      ${
+                        letterError && charGlobalIndex === currentCharIndex
+                          ? "text-red-500"
+                          : ""
+                      }
                     `}
-                >
-                  {char}
-                  {isCurrent && (
-                    <span aria-hidden="true" className="typing-caret" />
-                  )}
-                </span>
-              )
-            })}
-          </div>
-        ))}
+                  >
+                    {char}
+                    {isCurrent && (
+                      <span aria-hidden="true" className="typing-caret" />
+                    )}
+                  </span>
+                )
+              })}
+              {/* añadir el espacio entre palabras (salvo la última) */}
+              {wordIndex < words.length - 1 &&
+                (() => {
+                  const spaceIndex = globalIndex++
+                  const isSpaceCurrent = spaceIndex === currentCharIndex
+                  return (
+                    <span
+                      key={`space-${wordIndex}`}
+                      className={`inline-block relative
+                        ${spaceIndex >= currentCharIndex ? "text-gray-800" : ""}
+                        ${
+                          letterError && spaceIndex === currentCharIndex
+                            ? "text-red-500"
+                            : ""
+                        }
+                      `}
+                    >
+                      &nbsp;
+                      {isSpaceCurrent && (
+                        <span aria-hidden="true" className="typing-caret w-4" />
+                      )}
+                    </span>
+                  )
+                })()}
+            </div>
+          ))
+        })()}
       </div>
     </div>
   )
 }
 export default TypingBoard
-// ...existing code...
