@@ -1,5 +1,5 @@
 "use client"
-import { KeyboardEventHandler, useState } from "react"
+import { KeyboardEventHandler, useEffect, useState } from "react"
 
 interface TypingBoardProps {
   words: string[]
@@ -7,8 +7,13 @@ interface TypingBoardProps {
 const TypingBoard = ({ words }: TypingBoardProps) => {
   const [currentCharIndex, setCurrentCharIndex] = useState(0)
   const [letterError, setLetterError] = useState(false)
+  const [finished, setFinished] = useState(false)
+  const [started, setStarted] = useState(false)
+  const [timer, setTimer] = useState(60)
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
+    if (finished) return
+    if (!started) setStarted(true)
     const allChars = words.join(" ").split("")
     console.log(e.key, allChars[currentCharIndex])
     if (
@@ -28,8 +33,32 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
     }
   }
 
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null
+
+    if (timer > 0 && !finished && started) {
+      interval = setInterval(() => {
+        setTimer((prev) => {
+          if (prev <= 1) {
+            setFinished(true)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [timer, finished, started])
+
+  const formatTime = (seconds: number) => {
+    return seconds < 10 ? `0${seconds}` : seconds
+  }
+
   return (
-    <div className="w-full h-full rounded-md p-4 overflow-y-auto ">
+    <div className="w-full h-full rounded-md p-4 overflow-y-auto space-y-6">
       <style>{`
         @keyframes caret-blink {
           0%   { opacity: 1; }
@@ -47,9 +76,59 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
         }
       `}</style>
 
-      <p>
-        {currentCharIndex}/{words.join(" ").length}
-      </p>
+      <section className="text-center">
+        <h1 className="text-3xl font-bold mb-4">Escribiendo</h1>
+        <p>
+          Escribe las palabras que aparecen a continuación. Presiona las teclas
+          correspondientes para avanzar.
+        </p>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-2">Configuracion:</h2>
+        <div className="space-x-4">
+          {/* Configurar tiempo */}
+          <button
+            onClick={() => setTimer(60)}
+            className={`p-2 text-white rounded ${
+              timer === 60 ? "bg-blue-600" : "bg-transparent"
+            } hover:bg-blue-600`}
+          >
+            60 Segundos
+          </button>
+          <button
+            onClick={() => setTimer(120)}
+            className={`p-2 text-white rounded ${
+              timer === 120 && "bg-blue-600"
+            } hover:bg-blue-600`}
+          >
+            120 Segundos
+          </button>
+
+          <button
+            onClick={() => setTimer(180)}
+            className={`p-2 text-white rounded ${
+              timer === 180 && "bg-blue-600"
+            } hover:bg-blue-600`}
+          >
+            180 Segundos
+          </button>
+        </div>
+      </section>
+
+      <section className="flex items-center justify-between w-full">
+        <p>
+          {currentCharIndex}/{words.join(" ").length}
+        </p>
+
+        <span>{formatTime(timer)}</span>
+
+        {finished && (
+          <span className="ml-4 text-green-500 font-semibold">
+            {"Time's up!"}
+          </span>
+        )}
+      </section>
       <div
         className="text-gray-200 text-2xl font-medium leading-relaxed ring-0 outline-none focus:ring-0 focus:outline-none"
         tabIndex={0}
@@ -86,7 +165,7 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
                   </span>
                 )
               })}
-              
+
               {wordIndex < words.length - 1 &&
                 (() => {
                   const spaceIndex = globalIndex++
