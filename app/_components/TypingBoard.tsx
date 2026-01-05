@@ -9,7 +9,7 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
   const [letterError, setLetterError] = useState(false)
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
-    const allChars = words.join(" ").split("") // <-- ahora con espacios entre palabras
+    const allChars = words.join(" ").split("")
     console.log(e.key, allChars[currentCharIndex])
     if (
       e.key === "Shift" ||
@@ -18,7 +18,7 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
       e.key === "Meta" ||
       e.key === "Control"
     )
-      return // Ignore modifier keys
+      return
 
     if (e.key === allChars[currentCharIndex]) {
       setCurrentCharIndex(currentCharIndex + 1)
@@ -53,15 +53,10 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
       <div
         className="text-gray-200 text-2xl font-medium leading-relaxed ring-0 outline-none focus:ring-0 focus:outline-none"
         tabIndex={0}
-        onKeyDown={(e) => {
-          console.log(e.key)
-
-          return handleKeyDown(e)
-        }}
-        onFocus={(e) => console.log(e)}
+        onKeyDown={handleKeyDown}
       >
         {(() => {
-          let globalIndex = 0 // contador global de caracteres (incluye espacios)
+          let globalIndex = 0
           return words.map((word: string, wordIndex: number) => (
             <div key={wordIndex} className="inline-block mr-2 mb-2">
               {word.split("").map((char: string, index: number) => {
@@ -91,7 +86,7 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
                   </span>
                 )
               })}
-              {/* añadir el espacio entre palabras (salvo la última) */}
+              
               {wordIndex < words.length - 1 &&
                 (() => {
                   const spaceIndex = globalIndex++
