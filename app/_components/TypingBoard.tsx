@@ -1,5 +1,7 @@
 "use client"
-import { KeyboardEventHandler, useEffect, useState } from "react"
+import { MoveDown } from "lucide-react"
+import { KeyboardEventHandler, useEffect, useState, useRef } from "react"
+import { motion } from "motion/react"
 
 interface TypingBoardProps {
   words: string[]
@@ -8,6 +10,7 @@ interface TypingBoardProps {
   quantity: number
   changeWords: (n: number) => void
 }
+
 const TypingBoard = ({
   words,
   setQuantity,
@@ -22,8 +25,33 @@ const TypingBoard = ({
   const [finished, setFinished] = useState(false)
   const [started, setStarted] = useState(false)
   const [timer, setTimer] = useState(currentTime)
+  const lastRestartTime = useRef(0)
+  const DEBOUNCE_MS = 1000
+
+  const handleRestart = () => {
+    const now = Date.now()
+    if (now - lastRestartTime.current < DEBOUNCE_MS) {
+      return
+    }
+    lastRestartTime.current = now
+
+    changeWords(quantity)
+    setFinished(false)
+    setCurrentCharIndex(0)
+    setNumberOfErrors(0)
+    setLetterError(false)
+    setStarted(false)
+    setTimer(currentTime)
+  }
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
+    // Atajo: Ctrl/Cmd + R para reiniciar
+    if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+      e.preventDefault()
+      handleRestart()
+      return
+    }
+
     if (finished) return
     if (!started) setStarted(true)
     const allChars = words.join(" ").split("")
@@ -214,7 +242,10 @@ const TypingBoard = ({
                   >
                     {char}
                     {isCurrent && (
-                      <span aria-hidden="true" className="typing-caret w-12" />
+                      <span
+                        aria-hidden="true"
+                        className="typing-caret w-full"
+                      />
                     )}
                   </span>
                 )
@@ -227,7 +258,7 @@ const TypingBoard = ({
 
                   const spaceColorClass =
                     letterError && spaceIndex === currentCharIndex
-                      ? "text-red-500"
+                      ? "text-red-500 bg-red-400"
                       : spaceIndex >= currentCharIndex
                       ? "text-slate-300 dark:text-slate-600"
                       : "text-slate-800 dark:text-slate-200"
@@ -252,25 +283,41 @@ const TypingBoard = ({
         })()}
       </div>
 
-      <div className="pb-8">
-        <button
-          className={`bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-2.5 px-6 rounded-lg transition-colors ${
-            loading ? "opacity-50 cursor-not-allowed hover:bg-blue-600" : ""
-          }`}
-          onClick={() => {
-            changeWords(quantity)
-            setFinished(false)
-            setCurrentCharIndex(0)
-            setNumberOfErrors(0)
-            setLetterError(false)
-            setStarted(false)
-            setTimer(currentTime)
-          }}
-          disabled={loading}
-        >
-          Reiniciar
-        </button>
-      </div>
+      <section className="pb-8 flex flex-col sm:flex-row items-center justify-between w-full">
+        <div className="flex items-center gap-4">
+          <button
+            className={`bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium py-2.5 px-6 rounded-lg transition-colors ${
+              loading ? "opacity-50 cursor-not-allowed hover:bg-blue-600" : ""
+            }`}
+            onClick={handleRestart}
+            disabled={loading}
+          >
+            Reiniciar
+          </button>
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            Atajo:{" "}
+            <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">
+              Ctrl+C
+            </kbd>{" "}
+            /{" "}
+            <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">
+              ⌘+C
+            </kbd>
+          </span>
+        </div>
+
+        {finished && (
+          <motion.p
+            initial={{ opacity: 0, scale: 0, rotate: 0 }}
+            animate={{ opacity: 1, scale: 1, rotate: 360 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="flex gap-2 items-center sm:ml-6 text-sm text-green-600"
+          >
+            <MoveDown size={18} className="transform rotate-360 duration-75" />
+            Resultados
+          </motion.p>
+        )}
+      </section>
 
       {finished && (
         <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -316,4 +363,5 @@ const TypingBoard = ({
     </div>
   )
 }
+
 export default TypingBoard

@@ -8,9 +8,7 @@ import TypingBoard from "./_components/TypingBoard"
 export default function Home() {
   const [loading, setLoading] = useState(false)
   const [quantity, setQuantity] = useState(25)
-  const [wordsList, setWordsList] = useState<string[]>(
-    (words as string[]).slice(0, 10)
-  )
+  const [wordsList, setWordsList] = useState<string[]>([])
 
   const changeWords = (n: number) => {
     const result: string[] = []
@@ -37,10 +35,10 @@ export default function Home() {
 
   return (
     <main
-      className="flex min-h-screen w-full flex-col items-center bg-slate-50 dark:bg-slate-950"
+      className="flex min-h-screen w-full flex-col items-center justify-center bg-slate-50 dark:bg-slate-950"
       aria-busy={loading}
     >
-      {loading ? (
+      {loading || wordsList.length == 0 ? (
         <p className="text-2xl text-slate-400">Cargando...</p>
       ) : (
         <TypingBoard
