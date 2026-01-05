@@ -1,18 +1,20 @@
-/* eslint-disable react-hooks/purity */
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import words from "../public/words.json"
 import TypingBoard from "./_components/TypingBoard"
 
 export default function Home() {
   const [loading, setLoading] = useState(false)
+  const [quantity, setQuantity] = useState(10)
   const [wordsList, setWordsList] = useState<string[]>(
-    (words as string[]).sort(() => Math.random() - 0.5).slice(0, 10)
+    (words as string[]).slice(0, 10)
   )
 
-  const sample = (arr: string[], n: number) => {
+  const changeWords = (n: number) => {
     const result: string[] = []
+    const arr = words as string[]
     const len = arr.length
     const taken = new Set<number>()
     while (result.length < n) {
@@ -22,8 +24,16 @@ export default function Home() {
         result.push(arr[i])
       }
     }
-    return result
+    setWordsList(result)
   }
+
+  useEffect(() => {
+    setLoading(true)
+    const arr = [...(words as string[])]
+    setWordsList(arr.sort(() => Math.random() - 0.5).slice(0, 10))
+    changeWords(quantity)
+    setLoading(false)
+  }, [quantity])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -34,7 +44,7 @@ export default function Home() {
         {loading ? (
           <p className="text-2xl text-gray-500">Cargando...</p>
         ) : (
-          <TypingBoard words={wordsList} />
+          <TypingBoard words={wordsList} setQuantity={setQuantity} />
         )}
         {/* Reiniciar el juego */}
         <button
@@ -42,12 +52,7 @@ export default function Home() {
             loading ? "opacity-50 cursor-not-allowed hover:bg-blue-500" : ""
           }`}
           onClick={() => {
-            setLoading(true)
-            // calcular en otro tick para que React pinte el estado "loading"
-            setTimeout(() => {
-              setWordsList(sample(words as string[], 10))
-              setLoading(false)
-            }, 50)
+            changeWords(quantity)
           }}
           disabled={loading}
         >

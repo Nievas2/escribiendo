@@ -26,5 +26,34 @@ body {
 }
 
 button {
-  @apply cursor-pointer
+  @apply cursor-pointer;
+}
+
+@keyframes caret-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.typing-caret {
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  height: 0;
+  background: transparent;
+  animation: caret-blink 1s steps(1) infinite;
+  animation-play-state: runni;
+}
+
+.target-div:focus .typing-caret {
+  animation-play-state: running;
+  background: #60a5fa;
+  width: 100%;
+  height: 2px;
 }

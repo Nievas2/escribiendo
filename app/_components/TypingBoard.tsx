@@ -3,10 +3,12 @@ import { KeyboardEventHandler, useEffect, useState } from "react"
 
 interface TypingBoardProps {
   words: string[]
+  setQuantity: (n: number) => void
 }
-const TypingBoard = ({ words }: TypingBoardProps) => {
+const TypingBoard = ({ words, setQuantity }: TypingBoardProps) => {
   const [currentCharIndex, setCurrentCharIndex] = useState(0)
   const [letterError, setLetterError] = useState(false)
+  const [numberOfErrors, setNumberOfErrors] = useState(0)
   const [finished, setFinished] = useState(false)
   const [started, setStarted] = useState(false)
   const [timer, setTimer] = useState(60)
@@ -15,7 +17,6 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
     if (finished) return
     if (!started) setStarted(true)
     const allChars = words.join(" ").split("")
-    console.log(e.key, allChars[currentCharIndex])
     if (
       e.key === "Shift" ||
       e.key === "CapsLock" ||
@@ -28,7 +29,11 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
     if (e.key === allChars[currentCharIndex]) {
       setCurrentCharIndex(currentCharIndex + 1)
       if (letterError) setLetterError(false)
+      if (currentCharIndex === allChars.length - 1) {
+        setFinished(true)
+      }
     } else {
+      setNumberOfErrors((prev) => prev + 1)
       setLetterError(true)
     }
   }
@@ -59,23 +64,6 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
 
   return (
     <div className="w-full h-full rounded-md p-4 overflow-y-auto space-y-6">
-      <style>{`
-        @keyframes caret-blink {
-          0%   { opacity: 1; }
-          50%  { opacity: 0; }
-          100% { opacity: 1; }
-        }
-        .typing-caret {
-          position: absolute;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: #60a5fa;
-          bottom: 2px;
-          animation: caret-blink 1s steps(1) infinite;
-        }
-      `}</style>
-
       <section className="text-center">
         <h1 className="text-3xl font-bold mb-4">Escribiendo</h1>
         <p>
@@ -86,33 +74,67 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
 
       <section>
         <h2 className="text-xl font-semibold mb-2">Configuracion:</h2>
-        <div className="space-x-4">
-          {/* Configurar tiempo */}
-          <button
-            onClick={() => setTimer(60)}
-            className={`p-2 text-white rounded ${
-              timer === 60 ? "bg-blue-600" : "bg-transparent"
-            } hover:bg-blue-600`}
-          >
-            60 Segundos
-          </button>
-          <button
-            onClick={() => setTimer(120)}
-            className={`p-2 text-white rounded ${
-              timer === 120 && "bg-blue-600"
-            } hover:bg-blue-600`}
-          >
-            120 Segundos
-          </button>
 
-          <button
-            onClick={() => setTimer(180)}
-            className={`p-2 text-white rounded ${
-              timer === 180 && "bg-blue-600"
-            } hover:bg-blue-600`}
-          >
-            180 Segundos
-          </button>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+          <div className="space-x-4">
+            {/* Configurar tiempo */}
+            <button
+              onClick={() => setTimer(60)}
+              className={`p-2 text-white rounded ${
+                timer === 60 ? "bg-blue-600" : "bg-transparent"
+              } hover:bg-blue-600`}
+            >
+              60 Segundos
+            </button>
+
+            <button
+              onClick={() => setTimer(120)}
+              className={`p-2 text-white rounded ${
+                timer === 120 && "bg-blue-600"
+              } hover:bg-blue-600`}
+            >
+              120 Segundos
+            </button>
+
+            <button
+              onClick={() => setTimer(180)}
+              className={`p-2 text-white rounded ${
+                timer === 180 && "bg-blue-600"
+              } hover:bg-blue-600`}
+            >
+              180 Segundos
+            </button>
+          </div>
+
+          {/* Configurar palabras */}
+          <div>
+            <button
+              onClick={() => setQuantity(10)}
+              className={`p-2 text-white rounded ${
+                words.length === 10 && "bg-blue-600"
+              } hover:bg-blue-600`}
+            >
+              10 Palabras
+            </button>
+
+            <button
+              onClick={() => setQuantity(20)}
+              className={`p-2 text-white rounded ${
+                words.length === 20 && "bg-blue-600"
+              } hover:bg-blue-600`}
+            >
+              20 Palabras
+            </button>
+
+            <button
+              onClick={() => setQuantity(30)}
+              className={`p-2 text-white rounded ${
+                words.length === 30 && "bg-blue-600"
+              } hover:bg-blue-600`}
+            >
+              30 Palabras
+            </button>
+          </div>
         </div>
       </section>
 
@@ -130,14 +152,14 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
         )}
       </section>
       <div
-        className="text-gray-200 text-2xl font-medium leading-relaxed ring-0 outline-none focus:ring-0 focus:outline-none"
+        className="text-gray-200 text-2xl font-medium leading-relaxed ring-0 outline-none focus:ring-0 focus:outline-none rounded-xl p-2 border target-div"
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
         {(() => {
           let globalIndex = 0
           return words.map((word: string, wordIndex: number) => (
-            <div key={wordIndex} className="inline-block mr-2 mb-2">
+            <div key={wordIndex} className="inline-block mb-0.5">
               {word.split("").map((char: string, index: number) => {
                 const charGlobalIndex = globalIndex++
                 const isCurrent = charGlobalIndex === currentCharIndex
@@ -160,7 +182,7 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
                   >
                     {char}
                     {isCurrent && (
-                      <span aria-hidden="true" className="typing-caret" />
+                      <span aria-hidden="true" className="typing-caret w-12" />
                     )}
                   </span>
                 )
@@ -184,7 +206,10 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
                     >
                       &nbsp;
                       {isSpaceCurrent && (
-                        <span aria-hidden="true" className="typing-caret w-4" />
+                        <span
+                          aria-hidden="true"
+                          className="typing-caret w-full"
+                        />
                       )}
                     </span>
                   )
@@ -193,6 +218,13 @@ const TypingBoard = ({ words }: TypingBoardProps) => {
           ))
         })()}
       </div>
+      {finished && (
+        <div className="mt-4 p-4 rounded-md">
+          <h3 className="text-lg font-semibold mb-2">Resultados:</h3>
+          <p>Total de caracteres escritos: {currentCharIndex}</p>
+          <p>Número de errores: {numberOfErrors}</p>
+        </div>
+      )}
     </div>
   )
 }
