@@ -7,7 +7,7 @@ import TypingBoard from "./_components/TypingBoard"
 
 export default function Home() {
   const [loading, setLoading] = useState(false)
-  const [quantity, setQuantity] = useState(10)
+  const [quantity, setQuantity] = useState(25)
   const [wordsList, setWordsList] = useState<string[]>(
     (words as string[]).slice(0, 10)
   )
@@ -36,17 +36,17 @@ export default function Home() {
   }, [quantity])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main
-        className="flex min-h-screen w-full flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start"
-        aria-busy={loading}
-      >
-        {loading ? (
-          <p className="text-2xl text-gray-500">Cargando...</p>
-        ) : (
-          <TypingBoard words={wordsList} setQuantity={setQuantity} />
-        )}
-        {/* Reiniciar el juego */}
+    <main
+      className="flex min-h-screen w-full flex-col items-center bg-white dark:bg-black"
+      aria-busy={loading}
+    >
+      {loading ? (
+        <p className="text-2xl text-gray-500">Cargando...</p>
+      ) : (
+        <TypingBoard words={wordsList} setQuantity={setQuantity} />
+      )}
+      {/* Reiniciar el juego */}
+      <div>
         <button
           className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ${
             loading ? "opacity-50 cursor-not-allowed hover:bg-blue-500" : ""
@@ -58,7 +58,7 @@ export default function Home() {
         >
           Reiniciar
         </button>
-      </main>
-    </div>
+      </div>
+    </main>
   )
 }

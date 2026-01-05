@@ -7,11 +7,12 @@ interface TypingBoardProps {
 }
 const TypingBoard = ({ words, setQuantity }: TypingBoardProps) => {
   const [currentCharIndex, setCurrentCharIndex] = useState(0)
-  const [letterError, setLetterError] = useState(false)
+  const [currentTime, setCurrentTime] = useState(60)
   const [numberOfErrors, setNumberOfErrors] = useState(0)
+  const [letterError, setLetterError] = useState(false)
   const [finished, setFinished] = useState(false)
   const [started, setStarted] = useState(false)
-  const [timer, setTimer] = useState(60)
+  const [timer, setTimer] = useState(currentTime)
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
     if (finished) return
@@ -79,27 +80,36 @@ const TypingBoard = ({ words, setQuantity }: TypingBoardProps) => {
           <div className="space-x-4">
             {/* Configurar tiempo */}
             <button
-              onClick={() => setTimer(60)}
+              onClick={() => {
+                setCurrentTime(60)
+                setTimer(60)
+              }}
               className={`p-2 text-white rounded ${
-                timer === 60 ? "bg-blue-600" : "bg-transparent"
+                currentTime === 60 ? "bg-blue-600" : "bg-transparent"
               } hover:bg-blue-600`}
             >
               60 Segundos
             </button>
 
             <button
-              onClick={() => setTimer(120)}
+              onClick={() => {
+                setCurrentTime(120)
+                setTimer(120)
+              }}
               className={`p-2 text-white rounded ${
-                timer === 120 && "bg-blue-600"
+                currentTime === 120 && "bg-blue-600"
               } hover:bg-blue-600`}
             >
               120 Segundos
             </button>
 
             <button
-              onClick={() => setTimer(180)}
+              onClick={() => {
+                setCurrentTime(180)
+                setTimer(180)
+              }}
               className={`p-2 text-white rounded ${
-                timer === 180 && "bg-blue-600"
+                currentTime === 180 && "bg-blue-600"
               } hover:bg-blue-600`}
             >
               180 Segundos
@@ -109,30 +119,30 @@ const TypingBoard = ({ words, setQuantity }: TypingBoardProps) => {
           {/* Configurar palabras */}
           <div>
             <button
-              onClick={() => setQuantity(10)}
+              onClick={() => setQuantity(25)}
               className={`p-2 text-white rounded ${
-                words.length === 10 && "bg-blue-600"
+                words.length === 25 && "bg-blue-600"
               } hover:bg-blue-600`}
             >
-              10 Palabras
+              25 Palabras
             </button>
 
             <button
-              onClick={() => setQuantity(20)}
+              onClick={() => setQuantity(60)}
               className={`p-2 text-white rounded ${
-                words.length === 20 && "bg-blue-600"
+                words.length === 60 && "bg-blue-600"
               } hover:bg-blue-600`}
             >
-              20 Palabras
+              60 Palabras
             </button>
 
             <button
-              onClick={() => setQuantity(30)}
+              onClick={() => setQuantity(100)}
               className={`p-2 text-white rounded ${
-                words.length === 30 && "bg-blue-600"
+                words.length === 100 && "bg-blue-600"
               } hover:bg-blue-600`}
             >
-              30 Palabras
+              100 Palabras
             </button>
           </div>
         </div>
@@ -223,6 +233,17 @@ const TypingBoard = ({ words, setQuantity }: TypingBoardProps) => {
           <h3 className="text-lg font-semibold mb-2">Resultados:</h3>
           <p>Total de caracteres escritos: {currentCharIndex}</p>
           <p>Número de errores: {numberOfErrors}</p>
+          <p>
+            Porcentaje de errores:{" "}
+            {((numberOfErrors / currentCharIndex) * 100).toFixed(2)}%
+          </p>
+          <p>Tiempo restante: {formatTime(timer)}</p>
+          {
+            <p>
+              Palabras por minuto:{" "}
+              {((currentCharIndex / timer) * 60).toFixed(2)}
+            </p>
+          }
         </div>
       )}
     </div>
