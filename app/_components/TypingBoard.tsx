@@ -1,7 +1,13 @@
 "use client"
 import { MoveDown } from "lucide-react"
-import { KeyboardEventHandler, useEffect, useState, useRef } from "react"
-import { motion } from "motion/react"
+import {
+  KeyboardEventHandler,
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react"
 
 interface TypingBoardProps {
   words: string[]
@@ -24,11 +30,15 @@ const TypingBoard = ({
   const [letterError, setLetterError] = useState(false)
   const [finished, setFinished] = useState(false)
   const [started, setStarted] = useState(false)
-  const [timer, setTimer] = useState(currentTime)
+  const [timer, setTimer] = useState(60)
   const lastRestartTime = useRef(0)
   const DEBOUNCE_MS = 1000
 
-  const handleRestart = () => {
+  // Memorizar el string de caracteres para evitar recalcular
+  const allChars = useMemo(() => words.join(" ").split(""), [words])
+  const totalChars = allChars.length
+
+  const handleRestart = useCallback(() => {
     const now = Date.now()
     if (now - lastRestartTime.current < DEBOUNCE_MS) {
       return
@@ -42,63 +52,174 @@ const TypingBoard = ({
     setLetterError(false)
     setStarted(false)
     setTimer(currentTime)
-  }
+  }, [changeWords, quantity, currentTime])
 
-  const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
-    // Atajo: Ctrl/Cmd + R para reiniciar
-    if ((e.ctrlKey || e.metaKey) && e.key === "c") {
-      e.preventDefault()
-      handleRestart()
-      return
-    }
-
-    if (finished) return
-    if (!started) setStarted(true)
-    const allChars = words.join(" ").split("")
-    if (
-      e.key === "Shift" ||
-      e.key === "CapsLock" ||
-      e.key === "Alt" ||
-      e.key === "Meta" ||
-      e.key === "Control"
-    )
-      return
-
-    if (e.key === allChars[currentCharIndex]) {
-      setCurrentCharIndex(currentCharIndex + 1)
-      if (letterError) setLetterError(false)
-      if (currentCharIndex === allChars.length - 1) {
-        setFinished(true)
+  const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = useCallback(
+    (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+        e.preventDefault()
+        handleRestart()
+        return
       }
-    } else {
-      setNumberOfErrors((prev) => prev + 1)
-      setLetterError(true)
-    }
-  }
+
+      if (finished) return
+      if (!started) setStarted(true)
+
+      if (
+        e.key === "Shift" ||
+        e.key === "CapsLock" ||
+        e.key === "Alt" ||
+        e.key === "Meta" ||
+        e.key === "Control"
+      )
+        return
+
+      setCurrentCharIndex((prev) => {
+        if (e.key === allChars[prev]) {
+          if (letterError) setLetterError(false)
+          if (prev === allChars.length - 1) {
+            setFinished(true)
+          }
+          return prev + 1
+        } else {
+          setNumberOfErrors((n) => n + 1)
+          setLetterError(true)
+          return prev
+        }
+      })
+    },
+    [finished, started, allChars, letterError, handleRestart]
+  )
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null
+    if (timer <= 0 || finished || !started) return
 
-    if (timer > 0 && !finished && started) {
-      interval = setInterval(() => {
-        setTimer((prev) => {
-          if (prev <= 1) {
-            setFinished(true)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          setFinished(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
 
-    return () => {
-      if (interval) clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [timer, finished, started])
 
-  const formatTime = (seconds: number) => {
+  const formatTime = useCallback((seconds: number) => {
     return seconds < 10 ? `0${seconds}` : seconds
-  }
+  }, [])
+
+  const handleTimeChange = useCallback((time: number) => {
+    setCurrentTime(time)
+    setTimer(time)
+  }, [])
+
+  // Memoizar los botones de tiempo
+  const timeButtons = useMemo(
+    () =>
+      [60, 120, 180].map((time) => (
+        <button
+          key={time}
+          onClick={() => handleTimeChange(time)}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            currentTime === time
+              ? "bg-blue-600 text-white"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+          }`}
+        >
+          {time}s
+        </button>
+      )),
+    [currentTime, handleTimeChange]
+  )
+
+  // Memorizar los botones de cantidad
+  const quantityButtons = useMemo(
+    () =>
+      [25, 60, 100].map((qty) => (
+        <button
+          key={qty}
+          onClick={() => setQuantity(qty)}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            words.length === qty
+              ? "bg-blue-600 text-white"
+              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+          }`}
+        >
+          {qty} palabras
+        </button>
+      )),
+    [words.length, setQuantity]
+  )
+
+  // Memorizar el contenido de palabras
+  const wordContent = useMemo(() => {
+    let globalIndex = 0
+    return words.map((word: string, wordIndex: number) => (
+      <div key={wordIndex} className="inline-block mb-0.5">
+        {word.split("").map((char: string, index: number) => {
+          const charGlobalIndex = globalIndex++
+          const isCurrent = charGlobalIndex === currentCharIndex
+
+          const colorClass =
+            letterError && charGlobalIndex === currentCharIndex
+              ? "text-red-500"
+              : charGlobalIndex >= currentCharIndex
+              ? "text-slate-300 dark:text-slate-600"
+              : "text-slate-800 dark:text-slate-200"
+
+          return (
+            <span
+              key={`${wordIndex}-${index}`}
+              className={`inline-block relative ${colorClass}`}
+            >
+              {char}
+              {isCurrent && (
+                <span aria-hidden="true" className="typing-caret w-full" />
+              )}
+            </span>
+          )
+        })}
+
+        {wordIndex < words.length - 1 &&
+          (() => {
+            const spaceIndex = globalIndex++
+            const isSpaceCurrent = spaceIndex === currentCharIndex
+
+            const spaceColorClass =
+              letterError && spaceIndex === currentCharIndex
+                ? "text-red-500 bg-red-400"
+                : spaceIndex >= currentCharIndex
+                ? "text-slate-300 dark:text-slate-600"
+                : "text-slate-800 dark:text-slate-200"
+
+            return (
+              <span
+                key={`space-${wordIndex}`}
+                className={`inline-block relative ${spaceColorClass}`}
+              >
+                &nbsp;
+                {isSpaceCurrent && (
+                  <span aria-hidden="true" className="typing-caret w-full" />
+                )}
+              </span>
+            )
+          })()}
+      </div>
+    ))
+  }, [words, currentCharIndex, letterError])
+
+  const wpm = useMemo(() => {
+    if (currentTime - timer === 0) return 0
+    return ((currentCharIndex / 5 / (currentTime - timer)) * 60).toFixed(2)
+  }, [currentCharIndex, currentTime, timer])
+
+  const errorPercentage = useMemo(() => {
+    if (currentCharIndex === 0) return 0
+    return ((numberOfErrors / currentCharIndex) * 100).toFixed(2)
+  }, [numberOfErrors, currentCharIndex])
 
   return (
     <div className="w-full max-w-5xl h-full p-6 space-y-8">
@@ -118,90 +239,15 @@ const TypingBoard = ({
         </h2>
 
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => {
-                setCurrentTime(60)
-                setTimer(60)
-              }}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                currentTime === 60
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              60s
-            </button>
+          <div className="flex flex-wrap gap-2">{timeButtons}</div>
 
-            <button
-              onClick={() => {
-                setCurrentTime(120)
-                setTimer(120)
-              }}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                currentTime === 120
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              120s
-            </button>
-
-            <button
-              onClick={() => {
-                setCurrentTime(180)
-                setTimer(180)
-              }}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                currentTime === 180
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              180s
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setQuantity(25)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                words.length === 25
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              25 palabras
-            </button>
-
-            <button
-              onClick={() => setQuantity(60)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                words.length === 60
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              60 palabras
-            </button>
-
-            <button
-              onClick={() => setQuantity(100)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                words.length === 100
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              100 palabras
-            </button>
-          </div>
+          <div className="flex flex-wrap gap-2">{quantityButtons}</div>
         </div>
       </section>
 
       <section className="flex items-center justify-between text-slate-600 dark:text-slate-400 font-medium">
         <p>
-          {currentCharIndex}/{words.join(" ").length}
+          {currentCharIndex}/{totalChars}
         </p>
 
         <span className="text-2xl font-bold text-slate-800 dark:text-slate-200">
@@ -220,67 +266,7 @@ const TypingBoard = ({
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        {(() => {
-          let globalIndex = 0
-          return words.map((word: string, wordIndex: number) => (
-            <div key={wordIndex} className="inline-block mb-0.5">
-              {word.split("").map((char: string, index: number) => {
-                const charGlobalIndex = globalIndex++
-                const isCurrent = charGlobalIndex === currentCharIndex
-
-                const colorClass =
-                  letterError && charGlobalIndex === currentCharIndex
-                    ? "text-red-500"
-                    : charGlobalIndex >= currentCharIndex
-                    ? "text-slate-300 dark:text-slate-600"
-                    : "text-slate-800 dark:text-slate-200"
-
-                return (
-                  <span
-                    key={`${wordIndex}-${index}`}
-                    className={`inline-block relative ${colorClass}`}
-                  >
-                    {char}
-                    {isCurrent && (
-                      <span
-                        aria-hidden="true"
-                        className="typing-caret w-full"
-                      />
-                    )}
-                  </span>
-                )
-              })}
-
-              {wordIndex < words.length - 1 &&
-                (() => {
-                  const spaceIndex = globalIndex++
-                  const isSpaceCurrent = spaceIndex === currentCharIndex
-
-                  const spaceColorClass =
-                    letterError && spaceIndex === currentCharIndex
-                      ? "text-red-500 bg-red-400"
-                      : spaceIndex >= currentCharIndex
-                      ? "text-slate-300 dark:text-slate-600"
-                      : "text-slate-800 dark:text-slate-200"
-
-                  return (
-                    <span
-                      key={`space-${wordIndex}`}
-                      className={`inline-block relative ${spaceColorClass}`}
-                    >
-                      &nbsp;
-                      {isSpaceCurrent && (
-                        <span
-                          aria-hidden="true"
-                          className="typing-caret w-full"
-                        />
-                      )}
-                    </span>
-                  )
-                })()}
-            </div>
-          ))
-        })()}
+        {wordContent}
       </div>
 
       <section className="pb-8 flex flex-col sm:flex-row items-center justify-between w-full">
@@ -307,15 +293,10 @@ const TypingBoard = ({
         </div>
 
         {finished && (
-          <motion.p
-            initial={{ opacity: 0, scale: 0, rotate: 0 }}
-            animate={{ opacity: 1, scale: 1, rotate: 360 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="flex gap-2 items-center sm:ml-6 text-sm text-green-600"
-          >
-            <MoveDown size={18} className="transform rotate-360 duration-75" />
+          <p className="flex gap-2 items-center sm:ml-6 text-sm text-green-600 animate-fade-in">
+            <MoveDown size={18} className="animate-bounce" />
             Resultados
-          </motion.p>
+          </p>
         )}
       </section>
 
@@ -340,7 +321,7 @@ const TypingBoard = ({
             <p>
               Porcentaje de errores:{" "}
               <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {((numberOfErrors / currentCharIndex) * 100).toFixed(2)}%
+                {errorPercentage}%
               </span>
             </p>
             <p>
@@ -352,9 +333,7 @@ const TypingBoard = ({
             <p>
               Palabras por minuto:{" "}
               <span className="font-semibold text-blue-600 dark:text-blue-400 text-lg">
-                {((currentCharIndex / 5 / (currentTime - timer)) * 60).toFixed(
-                  2
-                )}
+                {wpm}
               </span>
             </p>
           </div>
